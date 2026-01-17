@@ -13,9 +13,14 @@ YOUTUBE_API_KEY = "AIzaSyC690dfN-lRw-eQimwEwDd3J1cab8Gcofw"
 
 # Configuración de servicios
 genai.configure(api_key=GEMINI_API_KEY)
-# Usamos el nombre del modelo estándar para evitar el error 404
-model = genai.GenerativeModel('gemini-1.5-flash')
-youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+
+# CAMBIO CLAVE: Nombre técnico completo para evitar el Error 404
+model = genai.GenerativeModel('models/gemini-1.5-flash')
+
+try:
+    youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+except:
+    st.error("Error al conectar con YouTube. Verifica la API Key.")
 
 st.title("⚡ TRIXIE")
 gem_choice = st.sidebar.radio("Selecciona un Módulo:", ["FAWN", "TEX", "Futuro", "Marky"])
@@ -60,44 +65,44 @@ if gem_choice == "FAWN":
                             st.divider()
 
 # ---------------------------------------------------------
-# MÓDULO TEX (Redacción Única)
+# MÓDULO TEX (Redacción Única y Directa)
 # ---------------------------------------------------------
 elif gem_choice == "TEX":
     st.header("📝 Módulo TEX")
-    st.info("Escribe lo que necesitas y TRIXIE redactará la carta completa.")
+    st.info("Escribe lo que necesitas (ej: pedido de materiales) y TRIXIE redactará la carta completa.")
     
-    # Campo único de referencia
-    referencia = st.text_area("Referencia de la carta:", placeholder="Ej: Solicito vacaciones para el mes de marzo...", height=150)
+    # Campo único de referencia como pediste
+    referencia = st.text_area("¿Qué debe decir la carta?", placeholder="Escribe aquí tu referencia...", height=200)
     
     if st.button("Redactar Carta"):
         if referencia:
             with st.spinner("Generando redacción formal..."):
                 try:
-                    # Prompt que le pide a la IA que deduzca el asunto y el cuerpo sola
-                    prompt_tex = f"Redacta una carta formal completa basada en la siguiente referencia: '{referencia}'. Incluye lugar (La Paz, Bolivia), fecha actual, un saludo profesional, el cuerpo de la carta bien estructurado y una despedida formal. Deja espacios en corchetes [ ] para datos personales faltantes."
+                    # Prompt optimizado para deducir todo el contexto
+                    prompt_tex = f"Redacta una carta formal profesional basada en esta referencia: '{referencia}'. Formato: Ciudad (La Paz, Bolivia) y fecha actual al inicio, saludo formal, cuerpo detallado y despedida profesional. Si faltan datos de nombres o cargos, usa corchetes [ ]."
                     
                     response = model.generate_content(prompt_tex)
                     st.markdown("---")
-                    st.markdown("### 📄 Carta Redactada:")
+                    st.markdown("### 📄 Resultado:")
                     st.write(response.text)
                 except Exception as e:
-                    st.error(f"Error de conexión: {e}. Intenta recargar la página.")
+                    st.error(f"Error técnico: {e}. Por favor, refresca la página.")
         else:
-            st.warning("Escribe una referencia primero.")
+            st.warning("Debes escribir una referencia para redactar.")
 
 # ---------------------------------------------------------
 # OTROS MÓDULOS
 # ---------------------------------------------------------
 elif gem_choice == "Futuro":
     st.header("🏢 Módulo FUTURO")
-    p = st.text_area("Planteamiento para el consejo:")
+    p = st.text_area("Situación:")
     if st.button("Consultar"):
         res = model.generate_content(f"Dictamen de Donald Trump y Elon Musk sobre: {p}")
         st.markdown(res.text)
 
 elif gem_choice == "Marky":
     st.header("📅 Módulo MARKY")
-    f = st.date_input("Fecha para planear:")
+    f = st.date_input("Fecha:")
     if st.button("Estrategia"):
-        res = model.generate_content(f"Propón una estrategia de marketing creativa para el día {f}")
+        res = model.generate_content(f"Marketing estratégico para el día {f}")
         st.markdown(res.text)
