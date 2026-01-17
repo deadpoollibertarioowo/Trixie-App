@@ -11,43 +11,41 @@ st.set_page_config(page_title="TRIXIE", page_icon="⚡", layout="wide")
 GEMINI_API_KEY = "AIzaSyDFCa4XKoGZ5ak8ldFqhA3dQT4eDwC0-Bg"
 YOUTUBE_API_KEY = "AIzaSyC690dfN-lRw-eQimwEwDd3J1cab8Gcofw"
 
-# Configuración de servicios
+# CONFIGURACIÓN DEL MOTOR IA (Corregido para evitar Error 404)
 genai.configure(api_key=GEMINI_API_KEY)
+# Usamos el nombre de modelo más estable para la API v1beta
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
-# CAMBIO CLAVE: Nombre técnico completo para evitar el Error 404
-model = genai.GenerativeModel('models/gemini-1.5-flash')
-
+# Conexión a YouTube
 try:
     youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 except:
-    st.error("Error al conectar con YouTube. Verifica la API Key.")
+    st.error("Error en la llave de YouTube.")
 
 st.title("⚡ TRIXIE")
 gem_choice = st.sidebar.radio("Selecciona un Módulo:", ["FAWN", "TEX", "Futuro", "Marky"])
 
 # ---------------------------------------------------------
-# MÓDULO FAWN (Buscador Liberalismo)
+# MÓDULO FAWN
 # ---------------------------------------------------------
 if gem_choice == "FAWN":
     st.header("🔍 Módulo FAWN")
-    personajes_dict = {"1": "Javier Milei", "2": "Axel Kaiser", "3": "Gloria Álvarez", "4": "Emmanuel Dannan", "5": "Jaime Dunn"}
-    seleccion = st.multiselect("Personajes:", list(personajes_dict.values()))
+    personajes = ["Javier Milei", "Axel Kaiser", "Gloria Álvarez", "Emmanuel Dannan", "Jaime Dunn"]
+    seleccion = st.multiselect("Personajes:", personajes)
     
-    st.subheader("Rango de Búsqueda")
     meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     anios = list(range(2015, 2027))
-    
     col1, col2 = st.columns(2)
     with col1:
-        mes_ini = st.selectbox("Mes inicio", meses, index=0)
+        mes_ini = st.selectbox("Desde:", meses, index=0)
         anio_ini = st.selectbox("Año inicio", anios, index=anios.index(2026))
     with col2:
-        mes_fin = st.selectbox("Mes fin", meses, index=datetime.date.today().month - 1)
+        mes_fin = st.selectbox("Hasta:", meses, index=datetime.date.today().month - 1)
         anio_fin = st.selectbox("Año fin", anios, index=anios.index(2026))
 
     if st.button("Generar Informe"):
         if seleccion:
-            with st.spinner("Buscando videos..."):
+            with st.spinner("Buscando..."):
                 m_i, m_f = meses.index(mes_ini) + 1, meses.index(mes_fin) + 1
                 f_i = datetime.date(anio_ini, m_i, 1).strftime('%Y-%m-%dT00:00:00Z')
                 f_f = datetime.date(anio_fin, m_f, calendar.monthrange(anio_fin, m_f)[1]).strftime('%Y-%m-%dT23:59:59Z')
@@ -65,44 +63,48 @@ if gem_choice == "FAWN":
                             st.divider()
 
 # ---------------------------------------------------------
-# MÓDULO TEX (Redacción Única y Directa)
+# MÓDULO TEX (Corregido y Simplificado)
 # ---------------------------------------------------------
 elif gem_choice == "TEX":
     st.header("📝 Módulo TEX")
-    st.info("Escribe lo que necesitas (ej: pedido de materiales) y TRIXIE redactará la carta completa.")
-    
-    # Campo único de referencia como pediste
-    referencia = st.text_area("¿Qué debe decir la carta?", placeholder="Escribe aquí tu referencia...", height=200)
+    referencia = st.text_area("¿Qué debe decir la carta?", placeholder="Escribe tu referencia aquí...", height=200)
     
     if st.button("Redactar Carta"):
         if referencia:
-            with st.spinner("Generando redacción formal..."):
+            with st.spinner("Redactando..."):
                 try:
-                    # Prompt optimizado para deducir todo el contexto
-                    prompt_tex = f"Redacta una carta formal profesional basada en esta referencia: '{referencia}'. Formato: Ciudad (La Paz, Bolivia) y fecha actual al inicio, saludo formal, cuerpo detallado y despedida profesional. Si faltan datos de nombres o cargos, usa corchetes [ ]."
-                    
-                    response = model.generate_content(prompt_tex)
+                    p_tex = f"Redacta una carta formal completa basada en: '{referencia}'. Lugar: La Paz, Bolivia. Incluye fecha actual, saludo, cuerpo y despedida profesional."
+                    response = model.generate_content(p_tex)
                     st.markdown("---")
-                    st.markdown("### 📄 Resultado:")
                     st.write(response.text)
                 except Exception as e:
-                    st.error(f"Error técnico: {e}. Por favor, refresca la página.")
-        else:
-            st.warning("Debes escribir una referencia para redactar.")
+                    st.error(f"Error de conexión con la IA: {e}")
 
 # ---------------------------------------------------------
-# OTROS MÓDULOS
+# MÓDULO FUTURO (Corregido)
 # ---------------------------------------------------------
 elif gem_choice == "Futuro":
     st.header("🏢 Módulo FUTURO")
-    p = st.text_area("Situación:")
-    if st.button("Consultar"):
-        res = model.generate_content(f"Dictamen de Donald Trump y Elon Musk sobre: {p}")
-        st.markdown(res.text)
+    p = st.text_area("Plantea tu situación:")
+    if st.button("Consultar Consejo"):
+        if p:
+            with st.spinner("Consultando a Trump y Musk..."):
+                try:
+                    response = model.generate_content(f"Actúa como Donald Trump y Elon Musk. Den un dictamen sobre: {p}")
+                    st.markdown(response.text)
+                except Exception as e:
+                    st.error(f"Error de conexión: {e}")
 
+# ---------------------------------------------------------
+# MÓDULO MARKY (Corregido)
+# ---------------------------------------------------------
 elif gem_choice == "Marky":
     st.header("📅 Módulo MARKY")
-    f = st.date_input("Fecha:")
-    if st.button("Estrategia"):
-        res = model.generate_content(f"Marketing estratégico para el día {f}")
-        st.markdown(res.text)
+    f = st.date_input("Fecha para el plan:")
+    if st.button("Generar Estrategia"):
+        with st.spinner("Planeando..."):
+            try:
+                response = model.generate_content(f"Propón una estrategia de marketing creativa para el {f}")
+                st.markdown(response.text)
+            except Exception as e:
+                st.error(f"Error de conexión: {e}")
