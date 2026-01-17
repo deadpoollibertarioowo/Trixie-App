@@ -18,74 +18,90 @@ st.title("⚡ TRIXIE")
 gem_choice = st.sidebar.radio("Selecciona un Módulo:", ["FAWN", "TEX", "Futuro", "Marky"])
 
 if gem_choice == "FAWN":
-    st.header("🔍 Módulo FAWN: Buscador de Élite")
+    st.header("🔍 Módulo FAWN: Filtro Liberalismo")
     
-    # Filtros optimizados: Nombre exacto + términos opcionales para no bloquear resultados
-    personajes_contexto = {
-        "Javier Milei": '"Javier Milei" (libertario OR política)',
-        "Axel Kaiser": '"Axel Kaiser" (liberalismo OR economía)',
-        "Gloria Álvarez": '"Gloria Álvarez" (libertaria OR política)',
-        "Dannan": '"Emmanuel Dannan" OR "Dannan"',
-        "Jaime Dunn": '"Jaime Dunn" (economía OR Bolivia)'
+    # Tu lista numerada de personajes
+    personajes_dict = {
+        "1": "Javier Milei",
+        "2": "Axel Kaiser",
+        "3": "Gloria Álvarez",
+        "4": "Emmanuel Dannan",
+        "5": "Jaime Dunn"
     }
     
-    seleccion = st.multiselect("¿Qué personaje(s) quieres hoy?", list(personajes_contexto.keys()))
+    seleccion = st.multiselect("Selecciona los personajes de hoy:", list(personajes_dict.values()))
     
-    st.subheader("Rango Mensual")
+    st.subheader("Rango de Búsqueda")
     meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     anios = list(range(2015, 2027))
     
     col1, col2 = st.columns(2)
     with col1:
-        mes_ini = st.selectbox("Mes inicio", meses, index=0) # Enero
-        anio_ini = st.selectbox("Año inicio", anios, index=anios.index(2026))
+        mes_ini = st.selectbox("Mes inicio", meses, index=10) # Noviembre por defecto
+        anio_ini = st.selectbox("Año inicio", anios, index=anios.index(2025))
     with col2:
-        mes_fin = st.selectbox("Mes fin", meses, index=0)
-        anio_fin = st.selectbox("Año fin", anios, index=anios.index(2026))
+        mes_fin = st.selectbox("Mes fin", meses, index=datetime.date.today().month - 1)
+        anio_fin = st.selectbox("Año fin", anios, index=anios.index(datetime.date.today().year))
 
-    if st.button("Generar Informe de Videos"):
+    if st.button("Generar Informe"):
         if seleccion:
-            with st.spinner("Buscando videos..."):
+            with st.spinner("Buscando bajo el filtro 'liberalismo'..."):
+                # Fechas
                 m_i = meses.index(mes_ini) + 1
                 m_f = meses.index(mes_fin) + 1
-                fecha_inicio = datetime.date(anio_ini, m_i, 1)
+                fecha_inicio = datetime.date(anio_ini, m_i, 1).strftime('%Y-%m-%dT00:00:00Z')
                 ultimo_dia = calendar.monthrange(anio_fin, m_f)[1]
-                fecha_fin = datetime.date(anio_fin, m_f, ultimo_dia)
+                fecha_fin = datetime.date(anio_fin, m_f, ultimo_dia).strftime('%Y-%m-%dT23:59:59Z')
                 
-                # Query flexible
-                query = " ".join([personajes_contexto[p] for p in seleccion])
-                
-                request = youtube.search().list(
-                    q=query,
-                    part="snippet",
-                    type="video",
-                    # Quitamos el filtro 'long' temporalmente para ver si es lo que bloquea
-                    # o lo dejamos si solo quieres +20 min. 
-                    videoDuration="any", 
-                    publishedAfter=fecha_inicio.strftime('%Y-%m-%dT00:00:00Z'),
-                    publishedBefore=fecha_fin.strftime('%Y-%m-%dT23:59:59Z'),
-                    maxResults=15
-                )
-                response = request.execute()
+                # Búsqueda individual por personaje + liberalismo para asegurar resultados
+                resultados_totales = []
+                for p in seleccion:
+                    query = f'"{p}" liberalismo -shorts'
+                    request = youtube.search().list(
+                        q=query,
+                        part="snippet",
+                        type="video",
+                        publishedAfter=fecha_inicio,
+                        publishedBefore=fecha_fin,
+                        maxResults=5
+                    )
+                    response = request.execute()
+                    if 'items' in response:
+                        resultados_totales.extend(response['items'])
 
-                if response['items']:
-                    st.success(f"He encontrado estos videos en {mes_ini} {anio_ini}:")
-                    for item in response['items']:
-                        # Filtro manual anti-shorts en el título/descripción
-                        titulo = item['snippet']['title']
-                        if "#shorts" in titulo.lower(): continue
-                        
-                        canal = item['snippet']['channelTitle']
-                        video_id = item['id']['videoId']
-                        url = f"https://www.youtube.com/watch?v={video_id}"
-                        
-                        with st.container():
-                            st.markdown(f"### {titulo}")
-                            st.write(f"📺 Canal: **{canal}** | [🎥 Ver Video]({url})")
+                if resultados_totales:
+                    st.success(f"Informe listo para {', '.join(seleccion)}")
+                    # Evitar duplicados
+                    vistos = set()
+                    for item in resultados_totales:
+                        v_id = item['id']['videoId']
+                        if v_id not in vistos:
+                            vistos.add(v_id)
+                            st.markdown(f"### {item['snippet']['title']}")
+                            st.write(f"📺 **Canal:** {item['snippet']['channelTitle']} | [🎥 Ver Video](https://www.youtube.com/watch?v={v_id})")
                             st.divider()
                 else:
-                    st.warning("No se encontraron videos. Prueba ampliando el rango o quitando términos.")
+                    st.warning("No se encontraron videos recientes con el filtro 'liberalismo'.")
         else:
-            st.warning("Selecciona un personaje.")
+            st.warning("Selecciona un personaje de la lista.")
 
-# (TEX, Futuro y Marky siguen debajo sin cambios)
+# Módulos TEX, Futuro y Marky...
+elif gem_choice == "TEX":
+    st.header("📝 Módulo TEX")
+    asunto = st.text_input("Asunto:")
+    puntos = st.text_area("Puntos:")
+    if st.button("Redactar"):
+        res = model.generate_content(f"Escribe una carta sobre {asunto}. {puntos}")
+        st.write(res.text)
+elif gem_choice == "Futuro":
+    st.header("🏢 Módulo FUTURO")
+    p = st.text_area("Planteamiento:")
+    if st.button("Consultar"):
+        res = model.generate_content(f"Dictamen de Trump y Musk: {p}")
+        st.markdown(res.text)
+elif gem_choice == "Marky":
+    st.header("📅 Módulo MARKY")
+    f = st.date_input("Fecha:")
+    if st.button("Estrategia"):
+        res = model.generate_content(f"Plan de marketing para {f}")
+        st.markdown(res.text)
