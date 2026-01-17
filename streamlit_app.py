@@ -20,47 +20,50 @@ st.title("⚡ TRIXIE")
 gem_choice = st.sidebar.radio("Selecciona un Módulo:", ["FAWN", "TEX", "Futuro", "Marky"])
 
 if gem_choice == "FAWN":
-    st.header("🔍 Módulo FAWN: Buscador Inteligente")
+    st.header("🔍 Módulo FAWN: Buscador de Élite")
+    st.info("Filtros de identidad activados para evitar homónimos.")
     
-    personajes_dict = {"1": "Javier Milei", "2": "Axel Kaiser", "3": "Gloria Álvarez", "4": "Dannan", "5": "Jaime Dunn"}
-    seleccion = st.multiselect("¿Qué personaje(s) quieres hoy?", list(personajes_dict.values()))
+    # Diccionario de búsqueda optimizada (Nombres + Contexto Profesional)
+    personajes_contexto = {
+        "Javier Milei": '"Javier Milei" política argentina libertario',
+        "Axel Kaiser": '"Axel Kaiser" liberalismo economía Chile',
+        "Gloria Álvarez": '"Gloria Álvarez" libertaria política Guatemala',
+        "Dannan": '"Emmanuel Dannan" oficial política',
+        "Jaime Dunn": '"Jaime Dunn" economía finanzas Bolivia'
+    }
     
-    # --- NUEVA SECCIÓN DE FECHAS POR MES Y AÑO ---
-    st.subheader("Rango de Búsqueda")
+    seleccion = st.multiselect("¿Qué personaje(s) quieres hoy?", list(personajes_contexto.keys()))
+    
+    st.subheader("Rango Mensual")
     meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     anios = list(range(2015, datetime.date.today().year + 1))
     
     col1, col2 = st.columns(2)
     with col1:
-        st.write("**Desde:**")
-        mes_inicio_n = st.selectbox("Mes inicio", meses, index=3) # Abril por defecto
-        anio_inicio = st.selectbox("Año inicio", anios, index=anios.index(2020))
-    
+        mes_ini = st.selectbox("Mes inicio", meses, index=3) # Abril por defecto
+        anio_ini = st.selectbox("Año inicio", anios, index=anios.index(2020))
     with col2:
-        st.write("**Hasta:**")
-        mes_fin_n = st.selectbox("Mes fin", meses, index=datetime.date.today().month - 1)
+        mes_fin = st.selectbox("Mes fin", meses, index=datetime.date.today().month - 1)
         anio_fin = st.selectbox("Año fin", anios, index=len(anios)-1)
 
     if st.button("Generar Informe de Videos"):
         if seleccion:
-            with st.spinner("Buscando videos largos..."):
-                # Convertir selección de mes/año a fechas reales
-                m_ini = meses.index(mes_inicio_n) + 1
-                m_fin = meses.index(mes_fin_n) + 1
+            with st.spinner("Realizando búsqueda quirúrgica en YouTube..."):
+                # Cálculo de fechas
+                m_i = meses.index(mes_ini) + 1
+                m_f = meses.index(mes_fin) + 1
+                fecha_inicio = datetime.date(anio_ini, m_i, 1)
+                ultimo_dia = calendar.monthrange(anio_fin, m_f)[1]
+                fecha_fin = datetime.date(anio_fin, m_f, ultimo_dia)
                 
-                # Primer día del mes de inicio
-                fecha_inicio = datetime.date(anio_inicio, m_ini, 1)
-                # Último día del mes de fin (calculado automáticamente)
-                ultimo_dia = calendar.monthrange(anio_fin, m_fin)[1]
-                fecha_fin = datetime.date(anio_fin, m_fin, ultimo_dia)
-                
-                query = " ".join([f'"{p}"' for p in seleccion])
+                # Construcción de la query con contexto
+                query = " ".join([personajes_contexto[p] for p in seleccion])
                 
                 request = youtube.search().list(
                     q=query,
                     part="snippet",
                     type="video",
-                    videoDuration="long",
+                    videoDuration="long", # Solo videos de +20 min (Adiós Shorts)
                     publishedAfter=fecha_inicio.strftime('%Y-%m-%dT00:00:00Z'),
                     publishedBefore=fecha_fin.strftime('%Y-%m-%dT23:59:59Z'),
                     maxResults=10
@@ -68,7 +71,7 @@ if gem_choice == "FAWN":
                 response = request.execute()
 
                 if response['items']:
-                    st.success(f"Videos encontrados entre {mes_inicio_n} {anio_inicio} y {mes_fin_n} {anio_fin}:")
+                    st.success(f"Resultados encontrados para: {', '.join(seleccion)}")
                     for item in response['items']:
                         titulo = item['snippet']['title']
                         canal = item['snippet']['channelTitle']
@@ -77,35 +80,33 @@ if gem_choice == "FAWN":
                         
                         with st.container():
                             st.markdown(f"### {titulo}")
-                            st.write(f"📺 Canal: **{canal}** | [🎥 Ver en YouTube]({url})")
+                            st.write(f"📺 Canal: **{canal}**")
+                            st.markdown(f"[🎥 Ver Video en YouTube]({url})")
                             st.divider()
                 else:
-                    st.warning("No se encontraron videos largos en ese rango mensual.")
+                    st.warning("No se encontraron videos largos con estos filtros específicos.")
         else:
-            st.warning("Selecciona al menos un personaje.")
+            st.warning("Por favor, selecciona al menos un personaje.")
 
-# Módulos TEX, Futuro y Marky se mantienen igual debajo...
+# --- MÓDULOS RESTANTES ---
 elif gem_choice == "TEX":
     st.header("📝 Módulo TEX")
-    asunto = st.text_input("Asunto de la carta:")
-    puntos = st.text_area("Detalles clave a incluir:")
-    if st.button("Redactar Carta"):
-        prompt = f"Redacta una carta formal sobre: {asunto}. Puntos clave: {puntos}"
-        response = model.generate_content(prompt)
-        st.write(response.text)
+    asunto = st.text_input("Asunto:")
+    puntos = st.text_area("Detalles:")
+    if st.button("Redactar"):
+        res = model.generate_content(f"Redacta una carta formal: {asunto}. {puntos}")
+        st.write(res.text)
 
 elif gem_choice == "Futuro":
     st.header("🏢 Módulo FUTURO")
-    pregunta = st.text_area("Plantea tu situación:")
-    if st.button("Obtener Dictamen"):
-        prompt = f"Actúa como un consejo de líderes (Trump, Musk). Analicen esto: {pregunta}"
-        response = model.generate_content(prompt)
-        st.markdown(response.text)
+    p = st.text_area("Plantea tu caso:")
+    if st.button("Consultar"):
+        res = model.generate_content(f"Dictamen de Trump y Musk sobre: {p}")
+        st.markdown(res.text)
 
 elif gem_choice == "Marky":
     st.header("📅 Módulo MARKY")
-    fecha_m = st.date_input("Fecha de campaña:")
-    if st.button("Generar Plan"):
-        prompt = f"Estrategia de marketing para el {fecha_m}"
-        response = model.generate_content(prompt)
-        st.markdown(response.text)
+    f = st.date_input("Fecha:")
+    if st.button("Estrategia"):
+        res = model.generate_content(f"Estrategia de marketing para: {f}")
+        st.markdown(res.text)
