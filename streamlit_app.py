@@ -43,13 +43,20 @@ if gem_choice == "FAWN":
     with col2:
         fin = st.date_input("Fecha final:", datetime.date.today())
         
-    if st.button("Ejecutar Búsqueda Automática"):
+    iif st.button("Ejecutar Búsqueda Automática"):
         if seleccion:
-            query = " + ".join(seleccion)
-            # Link de búsqueda que fuerza videos largos (sp=EgIYAw%253D%253D)
-            search_url = f"https://www.youtube.com/results?search_query={query}&sp=EgIYAw%253D%253D"
+            # Creamos la consulta con los personajes
+            query_personajes = " ".join([f'"{p}"' for p in seleccion])
+            
+            # Construimos los comandos de búsqueda para YouTube
+            filtros = f"after:{inicio} before:{fin} -shorts"
+            full_query = f"{query_personajes} {filtros}"
+            
+            # El enlace final con el filtro de videos largos activado
+            search_url = f"https://www.youtube.com/results?search_query={full_query.replace(' ', '+')}&sp=EgIYAw%253D%253D"
+            
             st.success(f"Búsqueda lista para: {', '.join(seleccion)}")
-            st.markdown(f"### [👉 Haz clic aquí para ver los resultados en YouTube]({search_url})")
+            st.markdown(f"### [👉 Haz clic aquí para ver los resultados filtrados]({search_url})")
         else:
             st.warning("Por favor selecciona al menos un personaje.")
 
