@@ -4,28 +4,34 @@ import calendar
 import google.generativeai as genai
 from googleapiclient.discovery import build
 
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÓN DE IDENTIDAD ---
 st.set_page_config(page_title="TRIXIE", page_icon="⚡", layout="wide")
 
+# --- API KEYS ---
 GEMINI_API_KEY = "AIzaSyDFCa4XKoGZ5ak8ldFqhA3dQT4eDwC0-Bg"
 YOUTUBE_API_KEY = "AIzaSyC690dfN-lRw-eQimwEwDd3J1cab8Gcofw"
 
-# Configuración mejorada para evitar errores de "NotFound"
+# Configuración de servicios
 genai.configure(api_key=GEMINI_API_KEY)
+# Usamos el nombre del modelo estándar para evitar el error 404
 model = genai.GenerativeModel('gemini-1.5-flash')
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 
 st.title("⚡ TRIXIE")
 gem_choice = st.sidebar.radio("Selecciona un Módulo:", ["FAWN", "TEX", "Futuro", "Marky"])
 
-# --- MÓDULO FAWN (Buscador Liberalismo) ---
+# ---------------------------------------------------------
+# MÓDULO FAWN (Buscador Liberalismo)
+# ---------------------------------------------------------
 if gem_choice == "FAWN":
     st.header("🔍 Módulo FAWN")
     personajes_dict = {"1": "Javier Milei", "2": "Axel Kaiser", "3": "Gloria Álvarez", "4": "Emmanuel Dannan", "5": "Jaime Dunn"}
     seleccion = st.multiselect("Personajes:", list(personajes_dict.values()))
     
+    st.subheader("Rango de Búsqueda")
     meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     anios = list(range(2015, 2027))
+    
     col1, col2 = st.columns(2)
     with col1:
         mes_ini = st.selectbox("Mes inicio", meses, index=0)
@@ -36,7 +42,7 @@ if gem_choice == "FAWN":
 
     if st.button("Generar Informe"):
         if seleccion:
-            with st.spinner("Buscando..."):
+            with st.spinner("Buscando videos..."):
                 m_i, m_f = meses.index(mes_ini) + 1, meses.index(mes_fin) + 1
                 f_i = datetime.date(anio_ini, m_i, 1).strftime('%Y-%m-%dT00:00:00Z')
                 f_f = datetime.date(anio_fin, m_f, calendar.monthrange(anio_fin, m_f)[1]).strftime('%Y-%m-%dT23:59:59Z')
@@ -53,41 +59,45 @@ if gem_choice == "FAWN":
                             st.write(f"📺 **Canal:** {item['snippet']['channelTitle']} | [🎥 Ver Video](https://www.youtube.com/watch?v={v_id})")
                             st.divider()
 
-# --- MÓDULO TEX (Redacción Simplificada) ---
+# ---------------------------------------------------------
+# MÓDULO TEX (Redacción Única)
+# ---------------------------------------------------------
 elif gem_choice == "TEX":
-    st.header("📝 Módulo TEX: Redactor de Cartas")
-    st.info("Escribe una referencia de lo que necesitas y TRIXIE redactará la carta formal completa.")
+    st.header("📝 Módulo TEX")
+    st.info("Escribe lo que necesitas y TRIXIE redactará la carta completa.")
     
-    # Un solo campo de texto para todo
-    instruccion = st.text_area("¿Qué debe decir la carta? (Ej: requerimiento de material para farmacia)", height=200)
+    # Campo único de referencia
+    referencia = st.text_area("Referencia de la carta:", placeholder="Ej: Solicito vacaciones para el mes de marzo...", height=150)
     
     if st.button("Redactar Carta"):
-        if instruccion:
-            with st.spinner("Redactando con estilo formal..."):
+        if referencia:
+            with st.spinner("Generando redacción formal..."):
                 try:
-                    # Prompt optimizado para que la IA entienda el contexto sola
-                    prompt_final = f"Actúa como un experto en redacción formal y administrativa. Basado en esta referencia: '{instruccion}', redacta una carta formal completa, con lugar, fecha (usa la de hoy), saludo, cuerpo detallado y despedida profesional. Si faltan datos como nombres de personas, deja los espacios en blanco entre corchetes [ ]."
+                    # Prompt que le pide a la IA que deduzca el asunto y el cuerpo sola
+                    prompt_tex = f"Redacta una carta formal completa basada en la siguiente referencia: '{referencia}'. Incluye lugar (La Paz, Bolivia), fecha actual, un saludo profesional, el cuerpo de la carta bien estructurado y una despedida formal. Deja espacios en corchetes [ ] para datos personales faltantes."
                     
-                    response = model.generate_content(prompt_final)
+                    response = model.generate_content(prompt_tex)
                     st.markdown("---")
-                    st.markdown("### 📄 Resultado de la Redacción:")
+                    st.markdown("### 📄 Carta Redactada:")
                     st.write(response.text)
                 except Exception as e:
-                    st.error(f"Hubo un problema con la conexión a Gemini. Verifica tu API Key. Error: {e}")
+                    st.error(f"Error de conexión: {e}. Intenta recargar la página.")
         else:
-            st.warning("Por favor, escribe al menos una breve referencia de lo que necesitas.")
+            st.warning("Escribe una referencia primero.")
 
-# --- MÓDULOS FUTURO Y MARKY ---
+# ---------------------------------------------------------
+# OTROS MÓDULOS
+# ---------------------------------------------------------
 elif gem_choice == "Futuro":
     st.header("🏢 Módulo FUTURO")
-    p = st.text_area("Planteamiento:")
+    p = st.text_area("Planteamiento para el consejo:")
     if st.button("Consultar"):
-        res = model.generate_content(f"Dictamen de Trump y Musk sobre: {p}")
+        res = model.generate_content(f"Dictamen de Donald Trump y Elon Musk sobre: {p}")
         st.markdown(res.text)
 
 elif gem_choice == "Marky":
     st.header("📅 Módulo MARKY")
-    f = st.date_input("Fecha:")
+    f = st.date_input("Fecha para planear:")
     if st.button("Estrategia"):
-        res = model.generate_content(f"Plan de marketing para {f}")
+        res = model.generate_content(f"Propón una estrategia de marketing creativa para el día {f}")
         st.markdown(res.text)
